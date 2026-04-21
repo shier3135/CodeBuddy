@@ -2,6 +2,8 @@
 
 Code Buddy turns an M5Stack StickS3 into a Bluetooth approval device for Codex CLI on macOS. Flash the StickS3 once, install `code-buddy`, then keep using `codex` normally while approval prompts appear on the device.
 
+> Building your own hardware client instead? See [firmware/REFERENCE.md](firmware/REFERENCE.md) for the BLE protocol and JSON payloads.
+
 ## What You Need
 
 - A Mac
@@ -61,6 +63,71 @@ codex
 ```
 
 Code Buddy will intercept the CLI session, keep the StickS3 linked, and show approval prompts on the device.
+
+## Controls
+
+|                         | Normal               | Pet         | Info        | Approval    |
+| ----------------------- | -------------------- | ----------- | ----------- | ----------- |
+| **A** (front)           | next screen          | next screen | next screen | **approve** |
+| **B** (right)           | scroll transcript    | next page   | next page   | **deny**    |
+| **Hold A**              | menu                 | menu        | menu        | menu        |
+| **Power** (left, short) | toggle screen off    |             |             |             |
+| **Power** (left, ~6s)   | hard power off       |             |             |             |
+| **Shake**               | dizzy                |             |             | —           |
+| **Face-down**           | nap (energy refills) |             |             |             |
+
+The screen auto-powers off after 30 seconds of inactivity and stays on while an approval prompt is pending. Any button press wakes it.
+
+## The Seven States
+
+| State       | Trigger                     | Feel                        |
+| ----------- | --------------------------- | --------------------------- |
+| `sleep`     | bridge not connected        | eyes closed, slow breathing |
+| `idle`      | connected, nothing urgent   | blinking, looking around    |
+| `busy`      | sessions actively running   | sweating, working           |
+| `attention` | approval pending            | alert, **LED blinks**       |
+| `celebrate` | level up (every 50K tokens) | confetti, bouncing          |
+| `dizzy`     | you shook the stick         | spiral eyes, wobbling       |
+| `heart`     | approved in under 5s        | floating hearts             |
+
+## ASCII Pets
+
+The firmware ships with eighteen ASCII pets. Each one has seven animations: `sleep`, `idle`, `busy`, `attention`, `celebrate`, `dizzy`, and `heart`.
+
+Use `menu -> next pet` on the device to cycle through them. The selection is saved to device storage, so your pet stays selected after reboot.
+
+## GIF Pets
+
+If you want a custom GIF character instead of an ASCII buddy, the firmware also supports character packs. A pack is a folder with a `manifest.json` plus 96px-wide GIFs for the same seven states.
+
+```json
+{
+  "name": "bufo",
+  "colors": {
+    "body": "#6B8E23",
+    "bg": "#000000",
+    "text": "#FFFFFF",
+    "textDim": "#808080",
+    "ink": "#000000"
+  },
+  "states": {
+    "sleep": "sleep.gif",
+    "idle": ["idle_0.gif", "idle_1.gif", "idle_2.gif"],
+    "busy": "busy.gif",
+    "attention": "attention.gif",
+    "celebrate": "celebrate.gif",
+    "dizzy": "dizzy.gif",
+    "heart": "heart.gif"
+  }
+}
+```
+
+Notes:
+
+- `idle` can be a single GIF or an array of GIFs; arrays rotate at loop boundaries.
+- Keep GIFs at 96px width. Heights up to about 140px fit well on the StickS3 screen.
+- See [firmware/characters/bufo/](firmware/characters/bufo/) for a working example.
+- For asset prep and USB flashing, see [firmware/tools/prep_character.py](firmware/tools/prep_character.py) and [firmware/tools/flash_character.py](firmware/tools/flash_character.py).
 
 ## Recovery
 
