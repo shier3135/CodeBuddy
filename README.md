@@ -2,6 +2,8 @@
 
 Code Buddy turns an M5Stack StickS3 into a Bluetooth approval device for Codex CLI on macOS. Flash the StickS3 once, install `code-buddy`, then keep using `codex` normally while approval prompts appear on the device.
 
+This project is ported from Anthropic's [claude-desktop-buddy](https://github.com/anthropics/claude-desktop-buddy), then adapted for Codex CLI, the StickS3 hardware path, and the `code-buddy` macOS setup flow.
+
 > Building your own hardware client instead? See [firmware/REFERENCE.md](firmware/REFERENCE.md) for the BLE protocol and JSON payloads.
 
 ## What You Need
