@@ -34,7 +34,7 @@ Developer release build:
 Install:
 
 ```bash
-brew install charlex/tap/code-buddy
+brew install CharlexH/tap/code-buddy
 ```
 
 First run:
