@@ -2,6 +2,8 @@ import asyncio
 import os
 from pathlib import Path
 
+import pytest
+
 from codex_buddy import ble_transport
 from codex_buddy.ble_transport import BleBuddyTransport, DiscoveredBuddy, _matches_buddy_discovery
 
@@ -157,3 +159,28 @@ def test_native_helper_app_path_prefers_runtime_install(monkeypatch, tmp_path):
         assert ble_transport._native_helper_app_path() == app_path
     finally:
         ble_transport._native_helper_app_path.cache_clear()
+
+
+def test_non_native_discover_requires_bleak(monkeypatch):
+    monkeypatch.setattr(
+        ble_transport,
+        "_require_bleak",
+        lambda: (_ for _ in ()).throw(RuntimeError("bleak is required")),
+    )
+    monkeypatch.setenv("CODEX_BUDDY_BLE_BACKEND", "bleak")
+
+    with pytest.raises(RuntimeError, match="bleak is required"):
+        asyncio.run(BleBuddyTransport.discover(timeout=0.1))
+
+
+def test_non_native_connect_requires_bleak(monkeypatch):
+    monkeypatch.setattr(
+        ble_transport,
+        "_require_bleak",
+        lambda: (_ for _ in ()).throw(RuntimeError("bleak is required")),
+    )
+
+    transport = BleBuddyTransport("device-1", use_native_helper=False)
+
+    with pytest.raises(RuntimeError, match="bleak is required"):
+        asyncio.run(transport.connect())

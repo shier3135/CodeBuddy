@@ -13,9 +13,12 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional
 
-from bleak import BleakClient, BleakScanner
+if TYPE_CHECKING:
+    from bleak import BleakClient
+else:
+    BleakClient = Any
 
 from .reducer import BuddySnapshot
 from .runtime import helper_app_path as runtime_helper_app_path
@@ -33,6 +36,17 @@ class DiscoveredBuddy:
 
 class NativeBleHelperError(RuntimeError):
     pass
+
+
+def _require_bleak():
+    try:
+        from bleak import BleakClient as imported_client, BleakScanner as imported_scanner
+    except ImportError as exc:  # pragma: no cover - exercised via monkeypatch in tests
+        raise RuntimeError(
+            "The `bleak` package is required for non-native BLE mode. "
+            "Use the native macOS helper or install `bleak`."
+        ) from exc
+    return imported_client, imported_scanner
 
 
 def _matches_buddy_discovery(payload: dict) -> bool:
@@ -402,7 +416,8 @@ class BleBuddyTransport:
     async def discover(cls, *, timeout: float = 4.0) -> list[DiscoveredBuddy]:
         if _default_use_native_helper():
             return await asyncio.to_thread(_discover_with_native_helper, timeout)
-        discovered = await BleakScanner.discover(timeout=timeout, return_adv=True)
+        _, scanner = _require_bleak()
+        discovered = await scanner.discover(timeout=timeout, return_adv=True)
         matches: list[DiscoveredBuddy] = []
         for _, (device, adv) in discovered.items():
             uuids = {value.lower() for value in (adv.service_uuids or [])}
@@ -429,7 +444,8 @@ class BleBuddyTransport:
 
         if self._client and self._client.is_connected:
             return
-        self._client = BleakClient(self.device_id)
+        client_class, _ = _require_bleak()
+        self._client = client_class(self.device_id)
         await self._client.connect()
         await self._client.start_notify(NUS_TX_UUID, self._handle_notification)
         await self.send_owner(os.environ.get("USER", "Codex"))
