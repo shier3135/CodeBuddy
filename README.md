@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshots/cover.png" alt="Code Buddy cover" width="100%" />
+  <img src="screenshots/cover.webp" alt="Code Buddy cover" width="100%" />
 </p>
 
 <h1 align="center">Code Buddy</h1>
