@@ -1,0 +1,17 @@
+.DS_Store
+.build/
+dist/
+.venv/
+.venv-hb/
+.venv311/
+.venvble/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+*.app/
+.cbscan.app/
+.python-ble/
+CB*.swift
+firmware/.pio/
+firmware/.sconsign*
