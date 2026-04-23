@@ -5,4 +5,4 @@ from . import setup_flow
 
 __all__ = ["__version__", "runtime", "shell_integration", "shim", "setup_flow"]
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"

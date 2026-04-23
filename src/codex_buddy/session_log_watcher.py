@@ -75,14 +75,14 @@ def parse_session_log(
                     started_at = _coerce_timestamp(payload.get("started_at"))
                     if started_at is None:
                         started_at = record_ts
-                    last_started_at = _max_timestamp(last_started_at, started_at)
+                    last_started_at = _max_timestamp(last_started_at, started_at, record_ts)
                     last_activity_at = _max_timestamp(last_activity_at, started_at)
                     continue
                 if event_type == "task_complete":
                     completed_at = _coerce_timestamp(payload.get("completed_at"))
                     if completed_at is None:
                         completed_at = record_ts
-                    last_completed_at = _max_timestamp(last_completed_at, completed_at)
+                    last_completed_at = _max_timestamp(last_completed_at, completed_at, record_ts)
                     last_activity_at = _max_timestamp(last_activity_at, completed_at)
                     last_agent_message = _clean_message(payload.get("last_agent_message"))
                     if last_agent_message:

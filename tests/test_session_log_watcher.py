@@ -161,6 +161,32 @@ def test_parse_session_log_transitions_from_completed_to_recent_then_drops(tmp_p
     )
 
 
+def test_parse_session_log_treats_same_second_restart_as_running(tmp_path: Path):
+    log_path = tmp_path / "sessions" / "same-second-restart.jsonl"
+    _write_log(
+        log_path,
+        [
+            _session_meta(session_id="session-restart"),
+            _event(3_000.000, "task_started", turn_id="turn-1", started_at=3_000.0),
+            _event(
+                3_010.400,
+                "task_complete",
+                turn_id="turn-1",
+                completed_at=3_010.0,
+                last_agent_message="First turn done.",
+            ),
+            _event(3_010.900, "task_started", turn_id="turn-2", started_at=3_010.0),
+            _event(3_011.100, "agent_message", message="Second turn is running."),
+        ],
+    )
+
+    session = parse_session_log(log_path, now=3_040.0)
+
+    assert session is not None
+    assert session.state == "running"
+    assert session.latest_message == "Second turn is running."
+
+
 def test_session_log_watcher_poll_rescans_recursively_and_honors_max_files(tmp_path: Path):
     root = tmp_path / "logs"
     first_path = root / "2026" / "04" / "20" / "first.jsonl"

@@ -7,6 +7,7 @@
 #include "clock_orient_logic.h"
 #include "clock_time_logic.h"
 #include "data.h"
+#include "persona_logic.h"
 #include "utf8_text_logic.h"
 #include "buddy.h"
 
@@ -37,7 +38,6 @@ const uint16_t PANEL = 0x2104;   // overlay panel background
 // the normal UI path by default now that approval rendering is fixed.
 static const bool VALIDATION_UI = false;
 
-enum PersonaState { P_SLEEP, P_IDLE, P_BUSY, P_ATTENTION, P_CELEBRATE, P_DIZZY, P_HEART };
 const char* stateNames[] = { "sleep", "idle", "busy", "attention", "celebrate", "dizzy", "heart" };
 
 TamaState    tama;
@@ -510,11 +510,11 @@ static void drawClock() {
 }
 
 PersonaState derive(const TamaState& s) {
-  if (!s.connected)            return P_IDLE;
-  if (s.sessionsWaiting > 0)   return P_ATTENTION;
-  if (s.recentlyCompleted)     return P_CELEBRATE;
-  if (s.sessionsRunning >= 3)  return P_BUSY;
-  return P_IDLE;   // connected, 0+ sessions, nothing urgent — hang out
+  PersonaInputs input = {};
+  input.connected = s.connected;
+  input.sessionsRunning = s.sessionsRunning;
+  input.sessionsWaiting = s.sessionsWaiting;
+  return derivePersonaState(input);
 }
 
 void triggerOneShot(PersonaState s, uint32_t durMs) {
