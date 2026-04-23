@@ -182,7 +182,7 @@ class SessionLogWatcher:
         now_ts = time.time() if now is None else float(now)
         records_by_id: dict[str, SessionRecord] = {}
 
-        for path in self._candidate_paths():
+        for path in self._candidate_paths(now=now_ts):
             session = parse_session_log(
                 path,
                 now=now_ts,
@@ -197,7 +197,7 @@ class SessionLogWatcher:
 
         return sorted(records_by_id.values(), key=lambda session: session.last_activity_at, reverse=True)
 
-    def _candidate_paths(self) -> list[Path]:
+    def _candidate_paths(self, *, now: Optional[float] = None) -> list[Path]:
         if self.max_files <= 0:
             return []
         if self.root.is_file():
@@ -205,13 +205,18 @@ class SessionLogWatcher:
         if not self.root.exists():
             return []
 
+        now_ts = time.time() if now is None else float(now)
+        cutoff = now_ts - max(self.active_window_seconds, self.completed_window_seconds)
         candidates: list[tuple[float, Path]] = []
         for path in self.root.rglob("*.jsonl"):
             try:
                 stat = path.stat()
             except OSError:
                 continue
-            candidates.append((float(stat.st_mtime), path))
+            mtime = float(stat.st_mtime)
+            if mtime < cutoff:
+                continue
+            candidates.append((mtime, path))
 
         candidates.sort(key=lambda item: (item[0], str(item[1])), reverse=True)
         return [path for _, path in candidates[: self.max_files]]

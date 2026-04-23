@@ -2,11 +2,19 @@ import argparse
 import asyncio
 import io
 import json
+import re
 from typing import Optional
 
 import pytest
 
 from codex_buddy import cli
+
+
+def _project_version() -> str:
+    text = (cli.Path(__file__).resolve().parents[1] / "pyproject.toml").read_text()
+    match = re.search(r'^version = "([^"]+)"$', text, re.MULTILINE)
+    assert match is not None
+    return match.group(1)
 
 
 def test_main_runs_setup_when_no_subcommand_and_setup_incomplete(monkeypatch):
@@ -261,3 +269,11 @@ def test_help_only_surfaces_public_user_commands(capsys):
     assert "agent" not in output
     assert "service-install" not in output
     assert "sessions" not in output
+
+
+def test_version_flag_reports_project_version(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["--version"])
+
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out.strip() == f"code-buddy {_project_version()}"

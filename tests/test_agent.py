@@ -5,6 +5,7 @@ from codex_buddy.agent import BuddyAgent, ManagedSessionRuntime
 from codex_buddy.catalog import SessionPrompt
 from codex_buddy.events import ApprovalRequest, TurnState
 from codex_buddy.proxy import ApprovalRequestResolved
+from codex_buddy.state_store import BridgeStateStore, PersistedState
 
 
 class _FakeBridge:
@@ -93,3 +94,57 @@ def test_managed_runtime_ignores_unrelated_approval_resolution():
         tool="Bash",
         hint="rm -f /tmp/demo",
     )
+
+
+class _FlakyBle:
+    created: list["_FlakyBle"] = []
+
+    def __init__(self, device_id: str, *, device_name: str, on_permission) -> None:
+        self.device_id = device_id
+        self.device_name = device_name
+        self.on_permission = on_permission
+        self.disconnect_calls = 0
+        self.snapshot_calls = 0
+        self._should_fail = not self.created
+        self.created.append(self)
+
+    async def connect(self) -> None:
+        if self._should_fail:
+            raise RuntimeError("temporary connect failure")
+
+    async def disconnect(self) -> None:
+        self.disconnect_calls += 1
+
+    async def send_snapshot(self, snapshot) -> None:
+        self.snapshot_calls += 1
+
+
+def test_agent_ble_loop_recreates_transport_after_connect_failure(tmp_path):
+    _FlakyBle.created = []
+    state_path = tmp_path / "state.json"
+    BridgeStateStore(state_path).save(
+        PersistedState(
+            paired_device_id="device-1",
+            paired_device_name="Codex-4DAD",
+        )
+    )
+
+    async def exercise():
+        agent = BuddyAgent(
+            state_path,
+            watcher=None,
+            reconnect_interval=0.01,
+            ble_factory=_FlakyBle,
+        )
+        task = asyncio.create_task(agent._ble_loop())
+        await asyncio.sleep(0.08)
+        agent._stopped.set()
+        await task
+        return agent
+
+    agent = asyncio.run(exercise())
+
+    assert len(_FlakyBle.created) >= 2
+    assert _FlakyBle.created[0].disconnect_calls == 1
+    assert agent._ble_connected is True
+    assert agent._ble is _FlakyBle.created[-1]

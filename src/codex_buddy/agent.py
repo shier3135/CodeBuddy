@@ -335,6 +335,10 @@ class BuddyAgent:
                     await self._publish_state(force=True)
                 except Exception:
                     self._ble_connected = False
+                    if self._ble is not None:
+                        with contextlib.suppress(Exception):
+                            await self._ble.disconnect()
+                    self._ble = None
             await asyncio.sleep(self.reconnect_interval)
 
     async def _keepalive_loop(self) -> None:

@@ -65,7 +65,8 @@ def test_shim_loads_real_codex_and_execs_with_remote(monkeypatch):
     assert exec_event[3] == "1"
 
 
-def test_shim_reports_missing_setup(capsys):
+def test_shim_reports_missing_setup(monkeypatch, capsys):
+    monkeypatch.setattr(shim, "_load_state", lambda: shim.PersistedState())
     exit_code = shim.main([])
 
     assert exit_code == 1

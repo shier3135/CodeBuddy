@@ -182,7 +182,7 @@ def test_session_log_watcher_poll_rescans_recursively_and_honors_max_files(tmp_p
             _event(1_010.0, "task_complete", turn_id="turn-old", completed_at=1_010.0),
         ],
     )
-    os.utime(first_path, (30.0, 30.0))
+    os.utime(first_path, (3_030.0, 3_030.0))
     os.utime(ignored_path, (10.0, 10.0))
 
     watcher = SessionLogWatcher(root, max_files=2, active_window_seconds=300.0, completed_window_seconds=120.0)
@@ -209,12 +209,42 @@ def test_session_log_watcher_poll_rescans_recursively_and_honors_max_files(tmp_p
             _event(3_130.0, "agent_message", message="Working in session three"),
         ],
     )
-    os.utime(second_path, (40.0, 40.0))
-    os.utime(third_path, (50.0, 50.0))
+    os.utime(second_path, (3_140.0, 3_140.0))
+    os.utime(third_path, (3_145.0, 3_145.0))
 
     second_poll = watcher.poll(now=3_150.0)
 
     assert [session.session_id for session in second_poll] == ["session-3", "session-2"]
+
+
+def test_session_log_watcher_skips_files_older_than_activity_window(tmp_path: Path):
+    root = tmp_path / "logs"
+    fresh_path = root / "2026" / "04" / "24" / "fresh.jsonl"
+    stale_path = root / "2026" / "04" / "23" / "stale.jsonl"
+
+    _write_log(
+        fresh_path,
+        [
+            _session_meta(session_id="session-fresh", cwd="/tmp/fresh"),
+            _event(5_000.0, "task_started", turn_id="turn-fresh", started_at=5_000.0),
+            _event(5_010.0, "agent_message", message="Still active"),
+        ],
+    )
+    _write_log(
+        stale_path,
+        [
+            _session_meta(session_id="session-stale", cwd="/tmp/stale"),
+            _event(4_000.0, "task_started", turn_id="turn-stale", started_at=4_000.0),
+            _event(4_010.0, "agent_message", message="Too old to matter"),
+        ],
+    )
+    os.utime(fresh_path, (5_020.0, 5_020.0))
+    os.utime(stale_path, (4_100.0, 4_100.0))
+
+    watcher = SessionLogWatcher(root, max_files=200, active_window_seconds=300.0, completed_window_seconds=120.0)
+
+    assert watcher._candidate_paths(now=5_100.0) == [fresh_path]
+    assert [session.session_id for session in watcher.poll(now=5_100.0)] == ["session-fresh"]
 
 
 def test_parse_session_log_normalizes_structured_source_values(tmp_path: Path):

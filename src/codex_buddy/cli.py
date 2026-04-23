@@ -10,7 +10,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
-from . import runtime, setup_flow, shell_integration
+from . import __version__, runtime, setup_flow, shell_integration
 from .agent import (
     AgentClient,
     AgentClientError,
@@ -45,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="code-buddy",
         description="Install, pair, and maintain Code Buddy for Codex CLI approvals.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--state-path", type=Path, default=default_state_path())
     subparsers = parser.add_subparsers(dest="command", metavar="{doctor,repair,uninstall}")
     parser.set_defaults(command="default", device=None, timeout=4.0)
