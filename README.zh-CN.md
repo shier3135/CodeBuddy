@@ -68,6 +68,8 @@ code-buddy
 - 安装本地 `codex` shim
 - 把 `~/.code-buddy/bin` 加进 `~/.zprofile`
 
+如果你的 StickS3 已经刷着当前固件，那么像 BLE helper 重连清理、以及多语言 snapshot 过长这类主机侧修复，都不需要重新刷机。
+
 ### 3. 正常使用
 
 ```bash

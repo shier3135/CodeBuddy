@@ -34,6 +34,12 @@ class DiscoveredBuddy:
     name: str
 
 
+@dataclass(frozen=True)
+class _HelperProcess:
+    pid: int
+    command: str
+
+
 class NativeBleHelperError(RuntimeError):
     pass
 
@@ -64,6 +70,70 @@ def _default_use_native_helper() -> bool:
     if backend == "native":
         return True
     return sys.platform == "darwin"
+
+
+def _native_helper_executable_path() -> Path:
+    return _native_helper_app_path() / "Contents" / "MacOS" / "CodeBuddyBLEHelper"
+
+
+def _list_native_helper_processes() -> list[_HelperProcess]:
+    completed = subprocess.run(
+        ["ps", "ax", "-o", "pid=", "-o", "command="],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    executable = str(_native_helper_executable_path())
+    processes: list[_HelperProcess] = []
+    for raw_line in completed.stdout.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split(None, 1)
+        if len(parts) != 2:
+            continue
+        pid_text, command = parts
+        if executable not in command:
+            continue
+        try:
+            pid = int(pid_text)
+        except ValueError:
+            continue
+        processes.append(_HelperProcess(pid=pid, command=command))
+    return processes
+
+
+def _terminate_native_helper_processes(
+    *,
+    session_dir: Optional[Path] = None,
+    device_id: Optional[str] = None,
+    timeout: float = 1.0,
+) -> None:
+    targets = []
+    session_text = str(session_dir) if session_dir is not None else None
+    device_flag = f"--device-id {device_id}" if device_id else None
+    for process in _list_native_helper_processes():
+        if session_text is not None and session_text not in process.command:
+            continue
+        if device_flag is not None and device_flag not in process.command:
+            continue
+        targets.append(process.pid)
+
+    if not targets:
+        return
+
+    for pid in targets:
+        subprocess.run(["kill", "-TERM", str(pid)], check=False, capture_output=True, text=True)
+
+    deadline = time.monotonic() + timeout
+    remaining = set(targets)
+    while remaining and time.monotonic() < deadline:
+        time.sleep(0.05)
+        alive = {process.pid for process in _list_native_helper_processes()}
+        remaining &= alive
+
+    for pid in remaining:
+        subprocess.run(["kill", "-KILL", str(pid)], check=False, capture_output=True, text=True)
 
 
 @functools.lru_cache(maxsize=1)
@@ -165,7 +235,7 @@ def _discover_with_native_helper(timeout: float) -> list[DiscoveredBuddy]:
                             discovered[device_id] = DiscoveredBuddy(device_id=device_id, name=name)
             time.sleep(0.05)
     finally:
-        subprocess.run(["pkill", "-f", str(session_dir)], check=False, capture_output=True, text=True)
+        _terminate_native_helper_processes(session_dir=session_dir)
         shutil.rmtree(session_dir, ignore_errors=True)
 
     matches = sorted(discovered.values(), key=lambda item: item.name)
@@ -220,7 +290,7 @@ class NativeBleHelperSession:
 
     async def write_json(self, payload: dict) -> None:
         await self.connect()
-        line = json.dumps(payload, separators=(",", ":"))
+        line = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
         await self._send_command("write_json", line=line)
 
     async def disconnect(self) -> None:
@@ -247,6 +317,8 @@ class NativeBleHelperSession:
         self._stop_requested = False
         self._shutdown_requested = False
         self._buffer = bytearray()
+
+        await asyncio.to_thread(_terminate_native_helper_processes, device_id=self.device_id)
 
         self._session_dir = Path(tempfile.mkdtemp(prefix="codebuddy-ble-"))
         self._commands_dir = self._session_dir / "commands"
@@ -382,8 +454,11 @@ class NativeBleHelperSession:
         self._connect_error = None
         self._fail_pending(NativeBleHelperError("native BLE helper stopped"))
         self._pending.clear()
+        if self._pump_task is not None and not self._pump_task.done():
+            self._pump_task.cancel()
         self._pump_task = None
         if self._session_dir is not None:
+            _terminate_native_helper_processes(session_dir=self._session_dir)
             shutil.rmtree(self._session_dir, ignore_errors=True)
         self._session_dir = None
         self._commands_dir = None
@@ -491,7 +566,7 @@ class BleBuddyTransport:
                 await self._native_session.write_json(payload)
                 return
 
-            raw = (json.dumps(payload, separators=(",", ":")) + "\n").encode("utf-8")
+            raw = (json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
             mtu = 180
             assert self._client is not None
             for idx in range(0, len(raw), mtu):

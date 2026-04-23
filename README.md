@@ -68,6 +68,8 @@ On first run, Code Buddy will:
 - install the local `codex` shim
 - add `~/.code-buddy/bin` to `~/.zprofile`
 
+If you are already on the current StickS3 firmware, host-side fixes like BLE helper reconnect cleanup and oversized multilingual snapshot handling do not require reflashing the device.
+
 ### 3. Use it normally
 
 ```bash

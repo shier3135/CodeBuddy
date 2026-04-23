@@ -5,7 +5,14 @@ from pathlib import Path
 import pytest
 
 from codex_buddy import ble_transport
-from codex_buddy.ble_transport import BleBuddyTransport, DiscoveredBuddy, _matches_buddy_discovery
+from codex_buddy.ble_transport import (
+    BleBuddyTransport,
+    DiscoveredBuddy,
+    NativeBleHelperSession,
+    _HelperProcess,
+    _matches_buddy_discovery,
+    _terminate_native_helper_processes,
+)
 
 
 class _FakeClient:
@@ -184,3 +191,88 @@ def test_non_native_connect_requires_bleak(monkeypatch):
 
     with pytest.raises(RuntimeError, match="bleak is required"):
         asyncio.run(transport.connect())
+
+
+def test_terminate_native_helper_processes_filters_by_session_dir(monkeypatch, tmp_path):
+    session_dir = tmp_path / "codebuddy-ble-123"
+    session_dir.mkdir()
+
+    matching = _HelperProcess(pid=101, command=f"/tmp/CodeBuddyBLEHelper --session-dir {session_dir} --device-id dev-1")
+    other = _HelperProcess(pid=202, command="/tmp/CodeBuddyBLEHelper --session-dir /tmp/other --device-id dev-1")
+
+    snapshots = [
+        [matching, other],
+        [other],
+    ]
+    monkeypatch.setattr(
+        ble_transport,
+        "_list_native_helper_processes",
+        lambda: snapshots.pop(0) if snapshots else [other],
+    )
+    monkeypatch.setattr(ble_transport.time, "monotonic", lambda: 0.0)
+    monkeypatch.setattr(ble_transport.time, "sleep", lambda _: None)
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **_: object):
+        calls.append(cmd)
+
+        class _Completed:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        return _Completed()
+
+    monkeypatch.setattr(ble_transport.subprocess, "run", fake_run)
+
+    _terminate_native_helper_processes(session_dir=session_dir)
+
+    assert calls == [["kill", "-TERM", "101"]]
+
+
+def test_native_helper_session_cleanup_terminates_current_session_dir(monkeypatch, tmp_path):
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        ble_transport,
+        "_terminate_native_helper_processes",
+        lambda **kwargs: calls.append(kwargs),
+    )
+
+    session = NativeBleHelperSession(device_id="dev-1", device_name="Codex-1234", on_permission=None)
+    session._session_dir = tmp_path / "codebuddy-ble-123"
+    session._session_dir.mkdir()
+    session_dir = session._session_dir
+
+    session._cleanup()
+
+    assert calls == [{"session_dir": session_dir}]
+    assert session._session_dir is None
+
+
+def test_native_helper_session_start_helper_cleans_stale_helpers_for_device(monkeypatch):
+    calls: list[dict[str, object]] = []
+
+    def fake_terminate(**kwargs):
+        calls.append(kwargs)
+
+    async def fake_to_thread(fn, *args, **kwargs):
+        return fn(*args, **kwargs)
+
+    monkeypatch.setattr(ble_transport, "_terminate_native_helper_processes", fake_terminate)
+    monkeypatch.setattr(ble_transport.asyncio, "to_thread", fake_to_thread)
+
+    session = NativeBleHelperSession(device_id="dev-1", device_name="Codex-1234", on_permission=None)
+    monkeypatch.setattr(session, "_launch_helper_process", lambda: None)
+
+    async def run() -> None:
+        await session._start_helper()
+        assert session._pump_task is not None
+        pump_task = session._pump_task
+        session._cleanup()
+        with pytest.raises(asyncio.CancelledError):
+            await pump_task
+
+    asyncio.run(run())
+
+    assert calls[0] == {"device_id": "dev-1"}

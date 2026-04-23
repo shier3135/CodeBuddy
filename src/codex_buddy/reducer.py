@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict, Optional
@@ -10,10 +11,15 @@ from .text_width import clip_text_by_width
 _SUMMARY_LIMIT = 44
 _ENTRY_LIMIT = 160
 _PROMPT_LIMIT = 160
+_BLE_PAYLOAD_MAX_BYTES = 900
 
 
 def _clip(text: str, limit: int) -> str:
     return clip_text_by_width(text, limit, ellipsis="…")
+
+
+def _ble_json_size(payload: dict) -> int:
+    return len(json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")) + 1
 
 
 @dataclass(frozen=True)
@@ -38,7 +44,40 @@ class BuddySnapshot:
             "tokens_today": self.tokens_today,
         }
         if self.prompt is not None:
-            payload["prompt"] = self.prompt
+            payload["prompt"] = dict(self.prompt)
+
+        if _ble_json_size(payload) <= _BLE_PAYLOAD_MAX_BYTES:
+            return payload
+
+        # Oldest transcript lines are lowest-priority on-device detail. Drop
+        # them first so running/waiting counts still fit inside the StickS3's
+        # line buffer even with verbose multilingual host output.
+        entries = list(payload["entries"])
+        while entries and _ble_json_size({**payload, "entries": entries}) > _BLE_PAYLOAD_MAX_BYTES:
+            entries.pop()
+        payload["entries"] = entries
+
+        if _ble_json_size(payload) <= _BLE_PAYLOAD_MAX_BYTES:
+            return payload
+
+        prompt = payload.get("prompt")
+        if prompt is not None:
+            hint = str(prompt.get("hint", ""))
+            for limit in (96, 72, 48, 32):
+                prompt["hint"] = clip_text_by_width(hint, limit, ellipsis="...")
+                if _ble_json_size(payload) <= _BLE_PAYLOAD_MAX_BYTES:
+                    return payload
+            payload.pop("prompt", None)
+
+        if _ble_json_size(payload) <= _BLE_PAYLOAD_MAX_BYTES:
+            return payload
+
+        msg = str(payload.get("msg", ""))
+        for limit in (36, 28, 20, 12):
+            payload["msg"] = clip_text_by_width(msg, limit, ellipsis="...")
+            if _ble_json_size(payload) <= _BLE_PAYLOAD_MAX_BYTES:
+                return payload
+
         return payload
 
 
