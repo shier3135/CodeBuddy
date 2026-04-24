@@ -100,9 +100,11 @@ The screen auto-powers off after 30 seconds of inactivity and stays on while an 
 | `idle`      | connected, nothing urgent   | blinking, looking around    |
 | `busy`      | sessions actively running   | sweating, working           |
 | `attention` | approval pending            | alert, **LED blinks**       |
-| `celebrate` | level up (every 50K tokens) | confetti, bouncing          |
+| `celebrate` | level up (50K tokens), Friday clock | confetti, bouncing          |
 | `dizzy`     | you shook the stick         | spiral eyes, wobbling       |
 | `heart`     | approved in under 5s        | floating hearts             |
+
+When the StickS3 is on USB power, has synced time, and has no running or waiting session, it can show the charging clock. On Fridays from 15:00 until midnight, the pet occasionally celebrates: about 4 seconds in each 12-second cycle.
 
 <details>
 <summary><strong>Characters and custom packs</strong></summary>
