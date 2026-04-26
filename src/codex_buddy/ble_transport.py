@@ -191,18 +191,12 @@ def _discover_with_native_helper(timeout: float) -> list[DiscoveredBuddy]:
 
     try:
         subprocess.run(
-            [
-                "open",
-                "-n",
-                str(_native_helper_app_path()),
-                "--args",
-                "--session-dir",
-                str(session_dir),
-                "--device-id",
-                "__SCAN_ONLY__",
-                "--device-name",
-                "",
-            ],
+            _native_helper_open_command(
+                app_path=_native_helper_app_path(),
+                session_dir=session_dir,
+                device_id="__SCAN_ONLY__",
+                device_name="",
+            ),
             check=True,
             capture_output=True,
             text=True,
@@ -240,6 +234,29 @@ def _discover_with_native_helper(timeout: float) -> list[DiscoveredBuddy]:
 
     matches = sorted(discovered.values(), key=lambda item: item.name)
     return matches
+
+
+def _native_helper_open_command(
+    *,
+    app_path: Path,
+    session_dir: Path,
+    device_id: str,
+    device_name: str,
+) -> list[str]:
+    return [
+        "open",
+        "-g",
+        "-j",
+        "-n",
+        str(app_path),
+        "--args",
+        "--session-dir",
+        str(session_dir),
+        "--device-id",
+        device_id,
+        "--device-name",
+        device_name,
+    ]
 
 
 class NativeBleHelperSession:
@@ -332,18 +349,12 @@ class NativeBleHelperSession:
     def _launch_helper_process(self) -> None:
         assert self._session_dir is not None
         app_path = _native_helper_app_path()
-        command = [
-            "open",
-            "-n",
-            str(app_path),
-            "--args",
-            "--session-dir",
-            str(self._session_dir),
-            "--device-id",
-            self.device_id,
-            "--device-name",
-            self.device_name,
-        ]
+        command = _native_helper_open_command(
+            app_path=app_path,
+            session_dir=self._session_dir,
+            device_id=self.device_id,
+            device_name=self.device_name,
+        )
         completed = subprocess.run(command, capture_output=True, text=True)
         if completed.returncode != 0:
             stderr = completed.stderr.strip()

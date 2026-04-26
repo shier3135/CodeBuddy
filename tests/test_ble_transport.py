@@ -107,6 +107,30 @@ def test_ble_transport_native_helper_connect_sends_owner_and_time_sync():
     assert len(fake.writes[1]["time"]) == 2
 
 
+def test_native_helper_open_command_launches_without_focus(tmp_path):
+    app_path = tmp_path / "CodeBuddyBLEHelper.app"
+    session_dir = tmp_path / "session"
+
+    command = ble_transport._native_helper_open_command(
+        app_path=app_path,
+        session_dir=session_dir,
+        device_id="dev-1",
+        device_name="Codex-1234",
+    )
+
+    assert command[:4] == ["open", "-g", "-j", "-n"]
+    assert command[4:] == [
+        str(app_path),
+        "--args",
+        "--session-dir",
+        str(session_dir),
+        "--device-id",
+        "dev-1",
+        "--device-name",
+        "Codex-1234",
+    ]
+
+
 def test_ble_transport_native_helper_forwards_permission_events():
     fake = _FakeNativeSession()
     approvals: list[tuple[str, str]] = []

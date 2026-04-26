@@ -47,8 +47,8 @@ private struct CommandEnvelope: Decodable {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, CBCentralManagerDelegate, CBPeripheralDelegate {
-    private var window: NSWindow!
-    private var textView: NSTextView!
+    private var window: NSWindow?
+    private var textView: NSTextView?
     private var config: Config!
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
@@ -61,6 +61,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, CBCentralManagerDelega
     private var activeSeq: Int?
     private var ready = false
     private var stopping = false
+    private var showsDebugWindow: Bool {
+        ProcessInfo.processInfo.environment["CODE_BUDDY_BLE_HELPER_DEBUG_WINDOW"] == "1"
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         do {
@@ -73,13 +76,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, CBCentralManagerDelega
             return
         }
 
-        buildWindow()
+        if showsDebugWindow {
+            buildWindow()
+        }
         emit(["event": "launch"])
 
         emit(["event": "central_create_started"])
         central = CBCentralManager(delegate: self, queue: nil)
         emit(["event": "central_created"])
-        NSApp.activate(ignoringOtherApps: true)
+        if showsDebugWindow {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -88,7 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, CBCentralManagerDelega
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        showsDebugWindow
     }
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -368,25 +375,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, CBCentralManagerDelega
 
     private func buildWindow() {
         let frame = NSRect(x: 0, y: 0, width: 640, height: 360)
-        window = NSWindow(
+        let debugWindow = NSWindow(
             contentRect: frame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "CodeBuddy BLE Helper"
+        debugWindow.title = "CodeBuddy BLE Helper"
         let scroll = NSScrollView(frame: frame)
         scroll.hasVerticalScroller = true
         scroll.autoresizingMask = [.width, .height]
-        textView = NSTextView(frame: frame)
-        textView.isEditable = false
-        textView.isRichText = false
-        textView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-        textView.autoresizingMask = [.width, .height]
-        scroll.documentView = textView
-        window.contentView = scroll
-        window.center()
-        window.makeKeyAndOrderFront(nil)
+        let logView = NSTextView(frame: frame)
+        logView.isEditable = false
+        logView.isRichText = false
+        logView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        logView.autoresizingMask = [.width, .height]
+        scroll.documentView = logView
+        debugWindow.contentView = scroll
+        debugWindow.center()
+        debugWindow.makeKeyAndOrderFront(nil)
+        textView = logView
+        window = debugWindow
     }
 
     private func emit(_ payload: [String: Any]) {
@@ -395,7 +404,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, CBCentralManagerDelega
         line.append("\n")
         if let storage = textView?.textStorage {
             storage.append(NSAttributedString(string: line))
-            textView.scrollToEndOfDocument(nil)
+            textView?.scrollToEndOfDocument(nil)
         }
         if let handle = try? FileHandle(forWritingTo: config.eventsURL) {
             try? handle.seekToEnd()
@@ -417,7 +426,8 @@ struct CodeBuddyBLEHelperMain {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
-        app.setActivationPolicy(.regular)
+        let showsDebugWindow = ProcessInfo.processInfo.environment["CODE_BUDDY_BLE_HELPER_DEBUG_WINDOW"] == "1"
+        app.setActivationPolicy(showsDebugWindow ? .regular : .accessory)
         app.delegate = delegate
         app.run()
     }

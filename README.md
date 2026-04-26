@@ -70,6 +70,8 @@ On first run, Code Buddy will:
 
 If you are already on the current StickS3 firmware, host-side fixes like BLE helper reconnect cleanup and oversized multilingual snapshot handling do not require reflashing the device.
 
+The native BLE helper runs as a background macOS agent during normal use, so reconnect attempts should not open a helper window or steal focus. macOS may still show the first Bluetooth permission prompt; that system prompt cannot be skipped. For helper debugging, start it with `CODE_BUDDY_BLE_HELPER_DEBUG_WINDOW=1` to show the event log window.
+
 ### 3. Use it normally
 
 ```bash

@@ -18,6 +18,8 @@
   <string>1</string>
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
+  <key>LSUIElement</key>
+  <true/>
   <key>NSBluetoothAlwaysUsageDescription</key>
   <string>CodeBuddy communicates with your StickS3 hardware buddy over Bluetooth Low Energy.</string>
   <key>NSBluetoothPeripheralUsageDescription</key>

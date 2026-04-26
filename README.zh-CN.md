@@ -70,6 +70,8 @@ code-buddy
 
 如果你的 StickS3 已经刷着当前固件，那么像 BLE helper 重连清理、以及多语言 snapshot 过长这类主机侧修复，都不需要重新刷机。
 
+正常使用时，原生 BLE helper 会作为 macOS 后台 agent 运行，所以重连过程不应该再打开 helper 窗口或抢走焦点。macOS 首次蓝牙权限确认仍可能出现，这是系统权限弹窗，不能跳过。如果需要调试 helper 事件，可以用 `CODE_BUDDY_BLE_HELPER_DEBUG_WINDOW=1` 打开事件日志窗口。
+
 ### 3. 正常使用
 
 ```bash
