@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import os
+import signal
 import socket
 import subprocess
 import time
@@ -59,6 +60,30 @@ def _append_path_entries(entries: list[str], path_text: str) -> None:
             entries.append(entry)
 
 
+def _terminate_process_group(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    except OSError:
+        process.terminate()
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=5)
+        return
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    except OSError:
+        process.kill()
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=5)
+
+
 @dataclass(frozen=True)
 class RunConfig:
     workdir: Path
@@ -105,9 +130,8 @@ class BridgeController:
             await self.ble.disconnect()
             await self.proxy.stop()
             if self._upstream_proc is not None:
-                self._upstream_proc.terminate()
-                with contextlib.suppress(subprocess.TimeoutExpired):
-                    self._upstream_proc.wait(timeout=5)
+                _terminate_process_group(self._upstream_proc)
+                self._upstream_proc = None
             self._persist_snapshot(self.reducer.snapshot(), buddy_connected=False)
 
     async def _start_upstream(self) -> None:
@@ -122,6 +146,7 @@ class BridgeController:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env=self._codex_env,
+            start_new_session=True,
         )
         deadline = time.time() + 10
         ready_url = f"http://127.0.0.1:{self.upstream_port}/readyz"
@@ -132,6 +157,9 @@ class BridgeController:
                         return
             except Exception:
                 await asyncio.sleep(0.2)
+        if self._upstream_proc is not None:
+            _terminate_process_group(self._upstream_proc)
+            self._upstream_proc = None
         raise RuntimeError("Timed out waiting for codex app-server to become ready")
 
     async def _run_codex(self) -> int:
@@ -245,9 +273,7 @@ class ManagedSessionBridge:
     async def stop(self) -> None:
         await self.proxy.stop()
         if self._upstream_proc is not None:
-            self._upstream_proc.terminate()
-            with contextlib.suppress(subprocess.TimeoutExpired):
-                self._upstream_proc.wait(timeout=5)
+            _terminate_process_group(self._upstream_proc)
             self._upstream_proc = None
 
     async def respond_to_device_approval(self, request_id: str, decision: str) -> None:
@@ -265,6 +291,7 @@ class ManagedSessionBridge:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env=self._codex_env,
+            start_new_session=True,
         )
         deadline = time.time() + 10
         ready_url = f"http://127.0.0.1:{self.upstream_port}/readyz"
@@ -275,6 +302,9 @@ class ManagedSessionBridge:
                         return
             except Exception:
                 await asyncio.sleep(0.2)
+        if self._upstream_proc is not None:
+            _terminate_process_group(self._upstream_proc)
+            self._upstream_proc = None
         raise RuntimeError("Timed out waiting for codex app-server to become ready")
 
     async def _handle_close(self) -> None:

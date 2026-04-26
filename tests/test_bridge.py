@@ -98,3 +98,4 @@ def test_managed_session_bridge_uses_saved_launch_path_for_codex_process(monkeyp
     assert "/usr/local/bin" in env_path
     assert env_path.index("/usr/local/bin") < env_path.index("/usr/bin")
     assert kwargs["env"]["CODE_BUDDY_SHIM_ACTIVE"] == "1"
+    assert kwargs["start_new_session"] is True
