@@ -9,10 +9,11 @@ from codex_buddy.state_store import BridgeStateStore, PersistedState
 
 
 class _FakeBridge:
-    def __init__(self, *, workdir, on_event, on_close) -> None:
+    def __init__(self, *, workdir, on_event, on_close, codex_path="codex") -> None:
         self.workdir = workdir
         self.on_event = on_event
         self.on_close = on_close
+        self.codex_path = codex_path
         self.started = False
         self.stopped = False
         self.approvals = []
@@ -31,8 +32,13 @@ class _FakeBridge:
 def test_agent_launch_registers_managed_session_and_routes_device_approval(tmp_path):
     created = []
 
-    def factory(*, workdir, on_event, on_close):
-        bridge = _FakeBridge(workdir=workdir, on_event=on_event, on_close=on_close)
+    def factory(*, workdir, on_event, on_close, codex_path, codex_launch_path):
+        bridge = _FakeBridge(
+            workdir=workdir,
+            on_event=on_event,
+            on_close=on_close,
+            codex_path=codex_path,
+        )
         created.append(bridge)
         return bridge
 
@@ -68,6 +74,44 @@ def test_agent_launch_registers_managed_session_and_routes_device_approval(tmp_p
     assert status["snapshot"]["prompt"]["id"] == "req-1"
     assert status["sessions"][0]["control_capability"] == "managed"
     assert status["sessions"][0]["session_id"] == "thr-1"
+
+
+def test_agent_launch_passes_saved_real_codex_path_to_managed_bridge(tmp_path):
+    state_path = tmp_path / "state.json"
+    BridgeStateStore(state_path).save(
+        PersistedState(
+            paired_device_id="device-1",
+            paired_device_name="Codex-4DAD",
+            real_codex_path="/usr/local/bin/codex",
+            codex_launch_path="/usr/local/bin:/usr/bin:/bin",
+        )
+    )
+    created = []
+
+    def factory(*, workdir, on_event, on_close, codex_path, codex_launch_path):
+        bridge = _FakeBridge(
+            workdir=workdir,
+            on_event=on_event,
+            on_close=on_close,
+            codex_path=codex_path,
+        )
+        bridge.codex_launch_path = codex_launch_path
+        created.append(bridge)
+        return bridge
+
+    async def exercise():
+        agent = BuddyAgent(
+            state_path,
+            watcher=None,
+            managed_session_factory=factory,
+            clock=lambda: 120.0,
+        )
+        await agent.launch(Path("/tmp/demo"))
+
+    asyncio.run(exercise())
+
+    assert created[0].codex_path == "/usr/local/bin/codex"
+    assert created[0].codex_launch_path == "/usr/local/bin:/usr/bin:/bin"
 
 
 def test_managed_runtime_ignores_unrelated_approval_resolution():

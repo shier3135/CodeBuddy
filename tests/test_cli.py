@@ -235,6 +235,54 @@ def test_run_uses_agent_launch_and_executes_local_codex_remote(monkeypatch):
     )
 
 
+def test_setup_records_current_path_for_codex_subprocesses(tmp_path, monkeypatch):
+    state_path = tmp_path / "state.json"
+    helper_path = tmp_path / "helper" / "CodeBuddyBLEHelper.app"
+    helper_path.mkdir(parents=True)
+    selected = argparse.Namespace(device_id="dev-1", name="Codex-1234")
+
+    async def fake_resolve_selected_device(args, current):
+        return selected
+
+    async def fake_pair_selected_device(store, selected_device):
+        current = store.load()
+        store.save(
+            cli.replace(
+                current,
+                paired_device_id=selected_device.device_id,
+                paired_device_name=selected_device.name,
+            )
+        )
+
+    def fake_write_codex_shim(shim_path, *, python_executable):
+        return None
+
+    monkeypatch.setattr(cli.sys, "platform", "darwin")
+    monkeypatch.setenv("PATH", "/custom/node/bin:/usr/bin:/bin")
+    monkeypatch.setattr(cli.setup_flow, "migrate_legacy_state", lambda: False)
+    monkeypatch.setattr(cli.setup_flow, "ensure_helper_app_installed", lambda: helper_path)
+    monkeypatch.setattr(
+        cli.setup_flow,
+        "resolve_real_codex_path",
+        lambda shim_dir, *, saved_path="": cli.Path("/usr/local/bin/codex"),
+    )
+    monkeypatch.setattr(cli.setup_flow, "write_codex_shim", fake_write_codex_shim)
+    monkeypatch.setattr(cli.setup_flow, "is_setup_complete", lambda state: True)
+    monkeypatch.setattr(cli.shell_integration, "install_path_block", lambda zprofile_path, shim_dir: None)
+    monkeypatch.setattr(cli.shell_integration, "has_path_block", lambda zprofile_path: True)
+    monkeypatch.setattr(cli, "_resolve_selected_device", fake_resolve_selected_device)
+    monkeypatch.setattr(cli, "_pair_selected_device", fake_pair_selected_device)
+    monkeypatch.setattr(cli, "_install_launchd_service", lambda state_path: None)
+    monkeypatch.setattr(cli, "launchd_service_status", lambda label: {"loaded": True})
+
+    exit_code = asyncio.run(cli._setup(argparse.Namespace(state_path=state_path), repair=True))
+
+    saved = cli.BridgeStateStore(state_path).load()
+    assert exit_code == 0
+    assert saved.real_codex_path == "/usr/local/bin/codex"
+    assert saved.codex_launch_path == "/custom/node/bin:/usr/bin:/bin"
+
+
 def test_status_prefers_live_agent_status(monkeypatch, capsys):
     def fake_agent_status(state_path):
         assert state_path == "/tmp/codebuddy-state.json"

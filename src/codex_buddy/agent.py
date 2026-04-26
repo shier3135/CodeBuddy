@@ -241,8 +241,11 @@ class BuddyAgent:
         self._launch_sequence += 1
         control_id = "managed-{}-{}".format(int(self.clock() * 1000), self._launch_sequence)
         runtime = ManagedSessionRuntime(control_id=control_id, workdir=workdir)
+        current = self.store.load()
         bridge = self._managed_session_factory(
             workdir=workdir,
+            codex_path=current.real_codex_path or "codex",
+            codex_launch_path=current.codex_launch_path,
             on_event=lambda event: self._handle_managed_event(control_id, event),
             on_close=lambda: self._handle_managed_close(control_id),
         )
@@ -416,6 +419,7 @@ class BuddyAgent:
                 agent_running=agent_running,
                 setup_version=current.setup_version,
                 real_codex_path=current.real_codex_path,
+                codex_launch_path=current.codex_launch_path,
                 helper_app_path=current.helper_app_path,
                 shim_dir=current.shim_dir,
                 shell_integrated=current.shell_integrated,

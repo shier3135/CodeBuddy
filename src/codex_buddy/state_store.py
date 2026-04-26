@@ -22,6 +22,7 @@ class PersistedState:
     agent_running: bool = False
     setup_version: int = 0
     real_codex_path: str = ""
+    codex_launch_path: str = ""
     helper_app_path: str = ""
     shim_dir: str = ""
     shell_integrated: bool = False
@@ -52,6 +53,7 @@ class BridgeStateStore:
                 agent_running=state.agent_running,
                 setup_version=state.setup_version,
                 real_codex_path=state.real_codex_path,
+                codex_launch_path=state.codex_launch_path,
                 helper_app_path=state.helper_app_path,
                 shim_dir=state.shim_dir,
                 shell_integrated=state.shell_integrated,

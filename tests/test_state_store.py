@@ -57,6 +57,7 @@ def test_state_store_preserves_setup_metadata_across_midnight_reset(tmp_path):
             active_thread_id="thr_1",
             setup_version=1,
             real_codex_path="/usr/local/bin/codex",
+            codex_launch_path="/usr/local/bin:/usr/bin:/bin",
             helper_app_path="/Users/tester/.code-buddy/helper/CodeBuddyBLEHelper.app",
             shim_dir="/Users/tester/.code-buddy/bin",
             shell_integrated=True,
@@ -70,6 +71,7 @@ def test_state_store_preserves_setup_metadata_across_midnight_reset(tmp_path):
     assert loaded.tokens_total == 1200
     assert loaded.setup_version == 1
     assert loaded.real_codex_path == "/usr/local/bin/codex"
+    assert loaded.codex_launch_path == "/usr/local/bin:/usr/bin:/bin"
     assert loaded.helper_app_path == "/Users/tester/.code-buddy/helper/CodeBuddyBLEHelper.app"
     assert loaded.shim_dir == "/Users/tester/.code-buddy/bin"
     assert loaded.shell_integrated is True

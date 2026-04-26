@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import inspect
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -208,6 +209,7 @@ async def _setup(args: argparse.Namespace, *, repair: bool = False) -> int:
         current,
         setup_version=setup_flow.SETUP_VERSION,
         real_codex_path=str(real_codex_path),
+        codex_launch_path=os.environ.get("PATH", ""),
         helper_app_path=str(helper_app_path),
         shim_dir=str(runtime.shim_dir()),
         shell_integrated=shell_integration.has_path_block(runtime.zprofile_path()),
@@ -316,6 +318,7 @@ def _doctor_payload(args: argparse.Namespace) -> dict[str, object]:
         "native_helper_app": helper_app,
         "native_helper_error": helper_error,
         "real_codex_path": state.real_codex_path,
+        "codex_launch_path": state.codex_launch_path,
         "real_codex_exists": real_codex_exists,
         "shim_dir": state.shim_dir or str(runtime.shim_dir()),
         "shim_path": str(shim_path),
